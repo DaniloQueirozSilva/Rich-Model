@@ -1,4 +1,5 @@
-﻿using PaymentContext.Domain.ValueObjects;
+﻿using Flunt.Validations;
+using PaymentContext.Domain.ValueObjects;
 using PaymentContext.Shared.Entities;
 
 namespace PaymentContext.Domain.Entities
@@ -9,28 +10,39 @@ namespace PaymentContext.Domain.Entities
         public Name Name { get; set; }
         public Document Document { get; set; }
         public Email Email { get; private set; }
-        public Address Address { get; private set; }
+        //public Address Address { get; private set; }
         public IReadOnlyCollection<Subscription> Subscriptions { get { return _subscriptions.ToArray(); } }
         private IList<Subscription> _subscriptions;
-        public Student(Name name, Document document, Email email, Address address)
+        public Student(Name name, Document document, Email email)
         {
             Name = name;
             Document = document;
             Email = email; 
-            Address = address;
+            //Address = address;
             _subscriptions = new List<Subscription>();
 
+            
             AddNotifications(name, document, email);
         }
 
         public void AddSubscription(Subscription subscription)
         {
+            
+            var hasSubscriptionActive = false;
+            
             foreach(var sub in _subscriptions)
             {
-                sub.Inactivate();
+                if(sub.Active)
+                    hasSubscriptionActive = true;
             }
 
-            _subscriptions.Add(subscription);    
+            AddNotifications(new Contract()
+                .Requires()
+                .IsFalse(hasSubscriptionActive, "Studen.Subscriptions", "Você já tem uma assinatura ativa")
+                .AreEquals(0, subscription.Payments.Count, "Student.Subscription.Payments", "Esta assinatura não possui pagamentos")
+                );
+
+            //AddNotifications(new Contract().Requires().IsFalse(hasSubscriptionActive, "Student.Subscriptions", "Você já tem uma assinatura ativa"));
         }
     }
 }
